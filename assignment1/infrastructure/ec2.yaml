@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2 instance creation
+Resources:
+  WebServerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Security group for web server
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  WebServerInstance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0abcdef1234567890"  # we can replace with the ID of the actual AMI we plan to use for this instance
+      InstanceType: t2.micro
+      KeyName: my-key-pair  # Replace with your actual key pair name
+      SecurityGroups:
+        - !Ref WebServerSecurityGroup

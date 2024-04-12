@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Architecting a scalable and secure static web application in AWS
+Resources:
+  S3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: my-unique-bucket-name
+      # here we can we will give our bucket name 
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt [S3Bucket, DomainName]
+            Id: S3Origin
+            S3OriginConfig: {}
+        Enabled: true
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          TargetOriginId: S3Origin
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+
+  DNSRecord:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      #here we will give our hosted zone ID
+      HostedZoneId: my-hosted-zone-id
+      # we can provide the domain where we will deploy our app
+      Name: www.mywebsite.com.
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt [CloudFrontDistribution, DomainName]
+        HostedZoneId: Z2FDTNDATAQYW2  # This is the Hosted Zone ID for all CloudFront distributions

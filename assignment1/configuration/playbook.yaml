@@ -1,0 +1,80 @@
+---
+- name: Install and configure web server
+  hosts: webserver
+  tasks:
+    - name: Install Apache
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Enable Apache on boot
+      service:
+        name: apache2
+        enabled: yes
+      become: yes
+
+    - name: Copy website files to server
+      copy:
+      # here we will use our actual path to our ssl cert and key
+        src: /path/to/your/website/files/
+        dest: /var/www/html/
+        owner: www-data
+        group: www-data
+        mode: '0644'
+      become: yes
+
+    - name: Enable mod_rewrite
+      command: a2enmod rewrite
+      notify: Restart Apache
+      become: yes
+
+    - name: Add rewrite rule to redirect HTTP to HTTPS
+      blockinfile:
+        path: /etc/apache2/sites-available/000-default.conf
+        block: |
+          <VirtualHost *:80>
+            ServerName www.mywebsite.com
+            Redirect / https://www.mywebsite.com/
+          </VirtualHost>
+        create: yes
+      notify: Restart Apache
+      become: yes
+
+    - name: Copy SSL certificate and key to server
+      copy:
+        src: /path/to/your/ssl/files/{{ item }}
+        dest: /etc/ssl/{{ item }}
+        owner: root
+        group: root
+        mode: '0600'
+      with_items:
+        - mywebsite.com.crt
+        - mywebsite.com.key
+      become: yes
+
+    - name: Add virtual host for HTTPS
+      blockinfile:
+        path: /etc/apache2/sites-available/default-ssl.conf
+        block: |
+          <VirtualHost *:443>
+            ServerName www.mywebsite.com
+            DocumentRoot /var/www/html/
+
+            SSLEngine on
+            SSLCertificateFile /etc/ssl/mywebsite.com.crt
+            SSLCertificateKeyFile /etc/ssl/mywebsite.com.key
+          </VirtualHost>
+        create: yes
+      notify: Restart Apache
+      become: yes
+
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+      become: yes
+
+    
